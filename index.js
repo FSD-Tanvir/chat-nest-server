@@ -114,13 +114,6 @@ async function run() {
       res.send(result);
     });
 
-    // save a post to db
-    app.post("/posts", verifyToken, async (req, res) => {
-      const post = req.body;
-      const result = await postsCollection.insertOne(post);
-      res.send(result);
-    });
-
     // get all data from postsCollection
     app.get("/posts", async (req, res) => {
       const cursor = postsCollection.find();
@@ -128,13 +121,59 @@ async function run() {
       res.send(result);
     });
 
+    // get posts sorting by newest to oldest
+    app.get("/posts/latest", async (req, res) => {
+      const pipeline = [
+        {
+          $sort: { time: -1 }, // Sort by createdAt field in descending order
+        },
+      ];
+
+      try {
+        const posts = await postsCollection.aggregate(pipeline).toArray();
+        res.send(posts);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // get posts sorting by popularity
+    app.get("/posts/popular", async (req, res) => {
+      const pipeline = [
+        {
+          $addFields: {
+            voteDifference: { $subtract: ["$upVote", "$downVote"] },
+          },
+        },
+        {
+          $sort: { voteDifference: -1 },
+        },
+      ];
+
+      try {
+        const posts = await postsCollection.aggregate(pipeline).toArray();
+        res.send(posts);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     //get specific user's all data from postsCollection
     app.get("/my-posts/", async (req, res) => {
       const userEmail = req.query.userEmail;
-      const query = { authorEmail: userEmail };
+      const query = { "author.authorEmail": userEmail };
       const cursor = postsCollection.find(query);
       const myPosts = await cursor.toArray();
       res.send(myPosts);
+    });
+
+    // save a post to db
+    app.post("/posts", verifyToken, async (req, res) => {
+      const post = req.body;
+      const result = await postsCollection.insertOne(post);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection

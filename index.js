@@ -106,8 +106,8 @@ async function run() {
       res.send(result);
     });
 
-     //get a user 
-     app.get("/users/:email", async (req, res) => {
+    //get a user
+    app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await usersCollection.findOne(query);
@@ -119,6 +119,22 @@ async function run() {
       const post = req.body;
       const result = await postsCollection.insertOne(post);
       res.send(result);
+    });
+
+    // get all data from postsCollection
+    app.get("/posts", async (req, res) => {
+      const cursor = postsCollection.find();
+      result = await cursor.toArray();
+      res.send(result);
+    });
+
+    //get specific user's all data from postsCollection
+    app.get("/my-posts/", async (req, res) => {
+      const userEmail = req.query.userEmail;
+      const query = { authorEmail: userEmail };
+      const cursor = postsCollection.find(query);
+      const myPosts = await cursor.toArray();
+      res.send(myPosts);
     });
 
     // Send a ping to confirm a successful connection

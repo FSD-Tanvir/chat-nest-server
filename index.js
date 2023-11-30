@@ -3,7 +3,7 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const morgan = require("morgan");
 const port = process.env.PORT || 5000;
@@ -48,6 +48,7 @@ async function run() {
     //collections
     const usersCollection = client.db("chatNestDb").collection("users");
     const postsCollection = client.db("chatNestDb").collection("posts");
+    const tagsCollection = client.db("chatNestDb").collection("tags");
 
     // auth related api
     app.post("/jwt", async (req, res) => {
@@ -169,12 +170,26 @@ async function run() {
       res.send(myPosts);
     });
 
+    //get a post from postsCollection
+    app.get("/post/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const post = await postsCollection.findOne(query);
+      res.send(post);
+    });
+
     // save a post to db
     app.post("/posts", verifyToken, async (req, res) => {
       const post = req.body;
       const result = await postsCollection.insertOne(post);
       res.send(result);
     });
+
+  //  // get all tags from db
+  //   app.get("/tags", async (req, res) => {
+  //     const tags = await postsCollection.find().toArray();
+  //     res.send(tags);
+  //   });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

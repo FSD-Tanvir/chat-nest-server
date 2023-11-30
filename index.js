@@ -49,7 +49,9 @@ async function run() {
     const usersCollection = client.db("chatNestDb").collection("users");
     const postsCollection = client.db("chatNestDb").collection("posts");
     const tagsCollection = client.db("chatNestDb").collection("tags");
-    const announcementsCollection = client.db("chatNestDb").collection("announcements");
+    const announcementsCollection = client
+      .db("chatNestDb")
+      .collection("announcements");
 
     // auth related api
     app.post("/jwt", async (req, res) => {
@@ -186,20 +188,24 @@ async function run() {
       res.send(result);
     });
 
-   // get all tags from db
+    // get all tags from db
     app.get("/tags", async (req, res) => {
       const tags = await tagsCollection.find().toArray();
       res.send(tags);
     });
 
-
-   // get all announcement from db
+    // get all announcement from db
     app.get("/announcements", async (req, res) => {
       const announcements = await announcementsCollection.find().toArray();
       res.send(announcements);
     });
 
-
+    // save an announcement to db
+    app.post("/announcements", verifyToken, async (req, res) => {
+      const announcement = req.body;
+      const result = await announcementsCollection.insertOne(announcement);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

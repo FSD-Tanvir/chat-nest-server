@@ -6,13 +6,16 @@ const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const morgan = require("morgan");
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
-
-//
 
 // middleware
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://localhost:5174"],
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://chat-nest-4eb0c.web.app",
+  ],
   credentials: true,
   optionSuccessStatus: 200,
 };
@@ -83,6 +86,32 @@ async function run() {
       } catch (err) {
         res.status(500).send(err);
       }
+    });
+
+    //generate client secret for stripe payment
+    app.post("/create-payment-intent", verifyToken, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      if (!price || amount < 1) return;
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ client_secret: client_secret });
+    });
+
+    //update user badge
+    app.patch("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const updateDoc = {
+        $set: {
+          badge: "gold",
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc);
+      res.send(result);
     });
 
     // Save or modify user email, status in DB
@@ -194,6 +223,13 @@ async function run() {
       res.send(tags);
     });
 
+    // save a tag to db
+    app.post("/tags", verifyToken, async (req, res) => {
+      const tag = req.body;
+      const result = await tagsCollection.insertOne(tag);
+      res.send(result);
+    });
+
     // get all announcement from db
     app.get("/announcements", async (req, res) => {
       const announcements = await announcementsCollection.find().toArray();
@@ -208,10 +244,10 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();

@@ -52,6 +52,7 @@ async function run() {
     const usersCollection = client.db("chatNestDb").collection("users");
     const postsCollection = client.db("chatNestDb").collection("posts");
     const tagsCollection = client.db("chatNestDb").collection("tags");
+    const commentsCollection = client.db("chatNestDb").collection("comments");
     const announcementsCollection = client
       .db("chatNestDb")
       .collection("announcements");
@@ -241,6 +242,27 @@ async function run() {
       const announcement = req.body;
       const result = await announcementsCollection.insertOne(announcement);
       res.send(result);
+    });
+
+    //save a comment to db
+    app.post("/comments", verifyToken, async (req, res) => {
+      const comment = req.body;
+      const result = await commentsCollection.insertOne(comment);
+      res.send(result);
+    });
+
+    // get all comments from db
+    app.get("/comments", async (req, res) => {
+      const allComments = await commentsCollection.find().toArray();
+      res.send(allComments);
+    });
+
+    // get  comments from db
+    app.get("/comments/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { postId: id };
+      const comments = await commentsCollection.find(query).toArray();
+      res.send(comments);
     });
 
     // Send a ping to confirm a successful connection
